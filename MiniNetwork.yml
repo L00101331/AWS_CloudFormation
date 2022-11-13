@@ -15,6 +15,7 @@ Resources:
        - Type:
          Value: Production-VPC
 
+#One Public Subnet
   PublicSubnet:
     Type: 'AWS::EC2::Subnet'
     Properties: 
@@ -31,7 +32,7 @@ Resources:
       - Type:
         Value: Public-Subnet
     
-
+#One Private Subnet
   PrivateSubnet:
     Type: 'AWS::EC2::Subnet'
     Properties: 
@@ -46,14 +47,13 @@ Resources:
         Value: Samantha
       - Type:
         Value: Public-Subnet
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: 8077d6d1-ceb9-443a-9daf-a7cafd24557e
+
+#JumpBox Server Creation
   JumpBox:
     Type: 'AWS::EC2::Instance'
-    Properties: null
+    Properties: 
     ImageId: ami-0d5eff06f840b45e9
-    InstanceType:
+    InstanceType: t2.micro
       NetworkInterfaces:
         - SubnetId: !Ref PublicSubnet
         - SubnetId: !Ref PublicSubnet
@@ -66,12 +66,13 @@ Resources:
         - SubnetId: !Ref PublicSubnet
       SecurityGroupIds:
         - !Ref JumpBoxSG
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: b59f0aba-e102-4e45-b965-61601148b971
+
+#AppInstance Server Creation
   AppInstance:
     Type: 'AWS::EC2::Instance'
     Properties:
+    ImageId: ami-0d5eff06f840b45e9
+    InstanceType: t2.micro
       NetworkInterfaces:
         - SubnetId: !Ref PrivateSubnet
         - SubnetId: !Ref PrivateSubnet
@@ -83,9 +84,7 @@ Resources:
         - SubnetId: !Ref PrivateSubnet
       SecurityGroupIds:
         - !Ref AppInstanceSG
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: c9e020e3-677b-4b11-b524-20372f0f26c9
+
   JumpBoxSG:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
