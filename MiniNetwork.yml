@@ -85,27 +85,31 @@ Resources:
       SecurityGroupIds:
         - !Ref AppInstanceSG
 
+# JumpBox Security Group References
   JumpBoxSG:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupName: !Join 
-        - '-'
-        - - JumpBoxSG
-      GroupDescription: Allow HTTP/HTTPS and SSH outbound traffic
+      GroupName: !Join ["-", [JumpBoxSG]]
+      GroupDescription: Allow HTTP/HTTPS and SSH outbound traffic - managed by CloudFormation.
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: null
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: 81a4e7d1-2ce3-453a-85dd-ef8cb50544e2
+
+# AppInstance Security Group References
   AppInstanceSG:
     Type: 'AWS::EC2::SecurityGroup'
-    Properties: {}
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: d892379c-f8e4-4062-8d3e-e12acd347828
+    Properties:
+      GroupName: !Join ["-", [AppInstanceSG]]
+      GroupDescription: App Instance SG belonging to the app server - managed by Cloudformation.
+      SecurityGroupIngress:
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId:
+            ref: JumpBoxSG
+
   PublicRouteTable:
     Type: 'AWS::EC2::RouteTable'
     Properties: {}
