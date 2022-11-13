@@ -3,19 +3,49 @@ Description: Create a VPC Network with subnets, ec2 hosts configured with Securi
 Resources:
   VPC:
     Type: 'AWS::EC2::VPC'
-    Properties: {}
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: 05da18ae-4592-4c05-9d9d-6de3ed7c042b
+    Properties: 
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostName: 'true'
+      Tags:
+       - Key: Environment
+         Value: Production
+       - Key: Owner
+         Value: Samantha
+       - Type:
+         Value: Production-VPC
+
   PublicSubnet:
     Type: 'AWS::EC2::Subnet'
-    Properties: {}
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: b9c14e01-38d2-47a8-88a8-bb3b20f929f2
+    Properties: 
+      VpcId: 
+        Ref: myVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: "us-east-1b"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Environment
+        Value: production
+      - Key: Owner
+        Value: Samantha
+      - Type:
+        Value: Public-Subnet
+    
+
   PrivateSubnet:
     Type: 'AWS::EC2::Subnet'
-    Properties: {}
+    Properties: 
+      VpcId: 
+        Ref: myVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Environment
+        Value: production
+      - Key: Owner
+        Value: Samantha
+      - Type:
+        Value: Public-Subnet
     Metadata:
       'AWS::CloudFormation::Designer':
         id: 8077d6d1-ceb9-443a-9daf-a7cafd24557e
