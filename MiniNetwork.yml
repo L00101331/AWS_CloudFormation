@@ -58,14 +58,6 @@ Resources:
     InstanceType: t2.micro
       NetworkInterfaces:
         - SubnetId: !Ref PublicSubnet
-        - SubnetId: !Ref PublicSubnet
-        - SubnetId: !Ref PublicSubnet
-        - SubnetId: !Ref PublicSubnet
-        - SubnetId: !Ref PublicSubnet
-        - SubnetId: !Ref PublicSubnet
-        - SubnetId: !Ref PublicSubnet
-        - SubnetId: !Ref PublicSubnet
-        - SubnetId: !Ref PublicSubnet
     SecurityGroupIds:
        - !Ref JumpBoxSG
 
@@ -76,13 +68,6 @@ Resources:
     ImageId: ami-0d5eff06f840b45e9
     InstanceType: t2.micro
       NetworkInterfaces:
-        - SubnetId: !Ref PrivateSubnet
-        - SubnetId: !Ref PrivateSubnet
-        - SubnetId: !Ref PrivateSubnet
-        - SubnetId: !Ref PrivateSubnet
-        - SubnetId: !Ref PrivateSubnet
-        - SubnetId: !Ref PrivateSubnet
-        - SubnetId: !Ref PrivateSubnet
         - SubnetId: !Ref PrivateSubnet
       SecurityGroupIds:
         - !Ref AppInstanceSG
