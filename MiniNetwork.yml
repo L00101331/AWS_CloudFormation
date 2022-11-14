@@ -84,7 +84,6 @@ Resources:
       - Type:
         Value: Private-Subnet-B
 
-
 #Network Routing
   #Internet Gateway
   InternetGateway:
@@ -186,6 +185,8 @@ Resources:
       InstanceType: t2.micro
       SecurityGroupIds:
         - !Ref JumpBoxSecurityGroup
+      NetworkInterfaces:
+        - SubnetId: !Ref PublicSubnetA
 
   JumpBoxSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -229,3 +230,33 @@ Resources:
           ToPort: 22
           SourceSecurityGroupId:
             ref: JumpBoxSG
+
+#WebApp Server Creation
+  WebAppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0d5eff06f840b45e9 # ImageID valid only in us-east-1 region
+      InstanceType: t2.micro
+      SecurityGroupIds:
+        - !Ref WebAppSecurityGroup
+      NetworkInterfaces:
+        - SubnetId: !Ref PublicSubnetB
+
+  WebAppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Join ["-", [WebApp-security-group, dev]]
+      GroupDescription: "Allow outbound traffic via HTTPS - Managed by CloudFormation"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
