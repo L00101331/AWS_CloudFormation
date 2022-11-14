@@ -291,7 +291,6 @@ Resources:
       DBSubnetGroupName: 
         Ref: PrivateSubnetB
       Engine: aurora
-      PubliclyAccessible: "true"
     Type: "AWS::RDS::DBInstance"
   RDSDBParameterGroup:
     Type: 'AWS::RDS::DBParameterGroup'
