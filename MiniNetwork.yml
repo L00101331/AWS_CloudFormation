@@ -3,6 +3,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Create a VPC Network with subnets, ec2 hosts configured with Security groups and other resources to interact.
 Resources:
+#VPC Creation
   myVPC:
     Type: 'AWS::EC2::VPC'
     Properties: 
@@ -230,6 +231,12 @@ Resources:
           ToPort: 22
           SourceSecurityGroupId:
             ref: JumpBoxSG
+
+# EIP to be associated with AppInstance
+  AppEIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      InstanceId: !Ref AppInstance
 
 #WebApp Server Creation
   WebAppInstance:
