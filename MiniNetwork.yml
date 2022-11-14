@@ -17,8 +17,8 @@ Resources:
        - Type:
          Value: Production-VPC
 
-#One Public Subnet
-  PublicSubnet:
+#Public Subnet A
+  PublicSubnetA:
     Type: 'AWS::EC2::Subnet'
     Properties: 
       VpcId: 
@@ -32,11 +32,29 @@ Resources:
       - Key: Owner
         Value: Samantha
       - Type:
-        Value: Public-Subnet
-    
-#One Private Subnet
-  PrivateSubnet:
+        Value: Public-Subnet-A
+
+#Public Subnet B
+  PublicSubnetB:
     Type: 'AWS::EC2::Subnet'
+    Properties: 
+      VpcId: 
+        Ref: myVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: "us-east-1b"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Environment
+        Value: production
+      - Key: Owner
+        Value: Samantha
+      - Type:
+        Value: Public-Subnet-B
+    
+    
+#Private Subnet A
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
     Properties: 
       VpcId: 
         Ref: myVPC
@@ -48,54 +66,7 @@ Resources:
       - Key: Owner
         Value: Samantha
       - Type:
-        Value: Public-Subnet
-
-#JumpBox Server Creation
-  JumpBox:
-    Type: 'AWS::EC2::Instance'
-    Properties: 
-    ImageId: ami-0d5eff06f840b45e9
-    InstanceType: t2.micro
-      NetworkInterfaces:
-        - SubnetId: !Ref PublicSubnet
-    SecurityGroupIds:
-       - !Ref JumpBoxSG
-
-#AppInstance Server Creation
-  AppInstance:
-    Type: 'AWS::EC2::Instance'
-    Properties:
-    ImageId: ami-0d5eff06f840b45e9
-    InstanceType: t2.micro
-      NetworkInterfaces:
-        - SubnetId: !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref AppInstanceSG
-
-# JumpBox Security Group References
-  JumpBoxSG:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupName: !Join ["-", [JumpBoxSG]]
-      GroupDescription: Allow HTTP/HTTPS and SSH outbound traffic - managed by CloudFormation.
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: null
-
-# AppInstance Security Group References
-  AppInstanceSG:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupName: !Join ["-", [AppInstanceSG]]
-      GroupDescription: App Instance SG belonging to the app server - managed by Cloudformation.
-      SecurityGroupIngress:
-          IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          SourceSecurityGroupId:
-            ref: JumpBoxSG
+        Value: Private-Subnet-A
 
 #Network Routing
   #Internet Gateway
@@ -149,10 +120,10 @@ Resources:
       Tags:
       - Key: Enviroment
         Value: production
-       - Key: Owner
-         Value: Samantha
-       - Type:
-         Value: Production-VPC
+      - Key: Owner
+        Value: Samantha
+      - Key: Type
+        Value: Production-VPC
 
   
   NATGatewayEIP:
@@ -188,3 +159,56 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnet
       RouteTableId: !Ref PrivateRouteTable
+
+####### Resources Creation ########
+#JumpBox Server Creation
+  JumpBoxInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0d5eff06f840b45e9 # ImageID valid only in us-east-1 region
+      InstanceType: t2.micro
+      SecurityGroupIds:
+        - !Ref JumpBoxSecurityGroup
+
+  JumpBoxSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Join ["-", [JumpBox-security-group, dev]]
+      GroupDescription: "Allow HTTP/HTTPS and SSH inbound and outbound traffic - Managed by CloudFormation"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+#AppInstance Server Creation
+  AppInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0d5eff06f840b45e9 # ImageID valid only in us-east-1 region
+      InstanceType: t2.micro
+      NetworkInterfaces:
+        - SubnetId: !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref AppInstanceSecurityGroup
+
+# AppInstance Security Group References
+  AppInstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Join ["-", [AppInstance-security-group, dev]]
+      GroupDescription: Allow HTTP/HTTPS and SSH inbound traffic - managed by CloudFormation.
+      SecurityGroupIngress:
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId:
+            ref: JumpBoxSG
