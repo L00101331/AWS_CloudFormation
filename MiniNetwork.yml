@@ -58,7 +58,7 @@ Resources:
     Properties: 
       VpcId: 
         Ref: myVPC
-      CidrBlock: 10.0.2.0/24
+      CidrBlock: 10.0.3.0/24
       AvailabilityZone: "us-east-1b"
       Tags:
       - Key: Environment
@@ -67,6 +67,23 @@ Resources:
         Value: Samantha
       - Type:
         Value: Private-Subnet-A
+
+#Private Subnet B
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: 
+        Ref: myVPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Environment
+        Value: production
+      - Key: Owner
+        Value: Samantha
+      - Type:
+        Value: Private-Subnet-B
+
 
 #Network Routing
   #Internet Gateway
