@@ -1,5 +1,5 @@
 # AWS_CloudFormation
-In this repo the files will be found for creating a mini network diagram.
+In this repository the files can be found for creating a mini network diagram.
 
 # Overview of each file
 - MiniNetwork.yaml - this file includes the setup used.
@@ -11,7 +11,7 @@ To test the above files follow the steps below:
 - In your aws account go to > Cloudformation > Create Stack
 - Then select upload a template file and import `mini.network.template`
 
-or
+**or**
 
 - When in Create Stack > select `create template in Designer`
 - In the bottom corner of the screen select `template`.
