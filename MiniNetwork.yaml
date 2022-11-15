@@ -1,15 +1,36 @@
-#Add a decription of what this is for.
-
 AWSTemplateFormatVersion: 2010-09-09
 Description: Create a VPC Network with subnets, ec2 hosts configured with Security groups and other resources to interact.
+Parameters:
+  DBUsername:
+    NoEcho: 'true'
+    Description: Username for MySQL database access
+    Type: String
+    MinLength: '1'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  DBPassword:
+    NoEcho: 'true'
+    Description: Password MySQL database access
+    Type: String
+    MinLength: '8'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must contain only alphanumeric characters.
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      ami: ami-0d5eff06f840b45e9
+    us-east-2:
+      ami: ami-002068ed284fb165b
+
+
 Resources:
-#VPC Creation
   ProductionVPC:
     Type: 'AWS::EC2::VPC'
     Properties: 
       CidrBlock: 10.0.0.0/16
-      EnableDnsSupport: 'true'  #AWS will resolved DNS hostnames to any instance within the VPCs IP address.
-      EnableDnsHostName: 'true' #Instances get allocated DNS hostnames by default
       Tags:
        - Key: Environment
          Value: Production
@@ -25,7 +46,7 @@ Resources:
       VpcId: 
         Ref: ProductionVPC
       CidrBlock: 10.0.1.0/24
-      AvailabilityZone: "us-east-1b"
+      AvailabilityZone: "us-east-1a"
       MapPublicIpOnLaunch: true
       Tags:
       - Key: Environment
@@ -55,12 +76,12 @@ Resources:
     
 #Private Subnet A
   PrivateSubnetA:
-    Type: AWS::EC2::Subnet
+    Type: 'AWS::EC2::Subnet'
     Properties: 
       VpcId: 
         Ref: ProductionVPC
       CidrBlock: 10.0.3.0/24
-      AvailabilityZone: "us-east-1b"
+      AvailabilityZone: "us-east-1a"
       Tags:
       - Key: Environment
         Value: production
@@ -71,7 +92,7 @@ Resources:
 
 #Private Subnet B
   PrivateSubnetB:
-    Type: AWS::EC2::Subnet
+    Type: 'AWS::EC2::Subnet'
     Properties: 
       VpcId: 
         Ref: ProductionVPC
@@ -82,29 +103,22 @@ Resources:
         Value: production
       - Key: Owner
         Value: Samantha
-      - Type:
+      - Key: Type
         Value: Private-Subnet-B
 
 #Network Routing
   #Internet Gateway
   InternetGateway:
     Type: AWS::EC2::InternetGateway
-    Properties:
-      - Key: Environment
-        Value: production
-      - Key: Owner
-        Value: Samantha
-      - Key: Type
-        Value: Internet-Gateway
 
   #Gateway to Internet
   GatewayToInternet:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       VpcId: 
-        Ref ProductionVPC
+        !Ref ProductionVPC
       InternetGatewayId: 
-        Ref InternetGateway
+        !Ref InternetGateway
     
 ######## Public Routing ########
 #Public Route Table
@@ -116,7 +130,7 @@ Resources:
 
 #Public Carrier Route
   PublicCarrierRoute:
-    Type: AWS::EC2::Route
+    Type: 'AWS::EC2::Route'
     DependsOn: GatewayToInternet
     Properties:
       RouteTableId: !Ref PublicRouteTable
@@ -125,13 +139,13 @@ Resources:
 
 #Public Subnet Route Table Association
   PublicSubnetARouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref PublicSubnetA 
       RouteTableId: !Ref PublicRouteTable
 
   PublicSubnetBRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref PublicSubnetB 
       RouteTableId: !Ref PublicRouteTable
@@ -143,21 +157,15 @@ Resources:
     Properties: 
       VpcId: !Ref ProductionVPC
 
-  #Private Carrier Route
-  PrivateCarrierRoute:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-
+#Private Subnet Route Table Association
   PrivateSubnetARouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref PrivateSubnetA
       RouteTableId: !Ref PrivateRouteTable
 
   PrivateSubnetBRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref PrivateSubnetB
       RouteTableId: !Ref PrivateRouteTable
@@ -165,19 +173,17 @@ Resources:
 ####### Resources Creation ########
 #JumpBox Server Creation
   JumpBoxInstance:
-    Type: AWS::EC2::Instance
+    Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: ami-0d5eff06f840b45e9 # ImageID valid only in us-east-1 region
       InstanceType: t2.micro
+      SubnetId: !Ref PublicSubnetA
       SecurityGroupIds:
-        - !Ref JumpBoxSecurityGroup
-      NetworkInterfaces:
-        - SubnetId: !Ref PublicSubnetA
+        - !GetAtt JumpBoxSecurityGroup.GroupId
 
   JumpBoxSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+    Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupName: !Join ["-", [JumpBox-security-group, dev]]
       GroupDescription: "Allow HTTP/HTTPS and SSH inbound and outbound traffic - Managed by CloudFormation"
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -192,30 +198,32 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
+      VpcId: !Ref ProductionVPC
 
 #AppInstance Server Creation
   AppInstance:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0d5eff06f840b45e9 # ImageID valid only in us-east-1 region
+      ImageId: !FindInMap
+        - RegionMap
+        - !Ref 'AWS::Region'
+        - ami
       InstanceType: t2.micro
-      NetworkInterfaces:
-        - SubnetId: !Ref PrivateSubnet
+      SubnetId: !Ref PrivateSubnetA
       SecurityGroupIds:
-        - !Ref AppInstanceSecurityGroup
+        - !GetAtt AppInstanceSecurityGroup.GroupId
 
 # AppInstance Security Group References
   AppInstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupName: !Join ["-", [AppInstance-security-group, dev]]
       GroupDescription: Allow HTTP/HTTPS and SSH inbound traffic - managed by CloudFormation.
       SecurityGroupIngress:
-          IpProtocol: tcp
+        - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          SourceSecurityGroupId:
-            ref: JumpBoxSG
+          SourceSecurityGroupId: !Ref JumpBoxSecurityGroup
+      VpcId: !Ref ProductionVPC
 
 # EIP to be associated with AppInstance
   AppEIP:
@@ -226,45 +234,17 @@ Resources:
 
 #WebApp Server Creation
   WebAppInstance:
-    Type: AWS::EC2::Instance
+    Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: ami-0d5eff06f840b45e9 # ImageID valid only in us-east-1 region
       InstanceType: t2.micro
+      SubnetId: !Ref PublicSubnetB
       SecurityGroupIds:
-        - !Ref WebAppSecurityGroup
-      NetworkInterfaces:
-        - SubnetId: !Ref PublicSubnetB
-    Metadata:
-      'AWS::CloudFormation::Init':
-      configSets:
-          All:
-            - ConfigureSampleApp
-      ConfigureSampleApp:
-          packages:
-            yum:
-              httpd: []
-          files:
-            /var/www/html/index.html:
-              content: !Join 
-                - |+
-
-                - - >-
-                    <h1>Congratulations, you have successfully launched the AWS
-                    CloudFormation sample.</h1>
-              mode: '000644'
-              owner: root
-              group: root
-          services:
-            sysvinit:
-              httpd:
-                enabled: 'true'
-                ensureRunning: 'true'
-
+        - !GetAtt WebAppSecurityGroup.GroupId
 
   WebAppSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+    Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupName: !Join ["-", [WebApp-security-group, dev]]
       GroupDescription: "Allow outbound traffic via HTTPS - Managed by CloudFormation"
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -279,44 +259,24 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
+      VpcId: !Ref ProductionVPC
 
 ######## Aurora RDS Configuration ###########
-  RDSCluster: 
-    Properties: 
-      DBClusterParameterGroupName: 
-        Ref: RDSDBClusterParameterGroup
-      DBSubnetGroupName: 
-        Ref: PrivateSubnetB
-      Engine: aurora
-      MasterUserPassword: 
-        Ref: password
-      MasterUsername: 
-        Ref: username
-    Type: "AWS::RDS::DBCluster"
-  RDSDBClusterParameterGroup: 
-    Properties: 
-      Description: "CloudFormation Sample Aurora Cluster Parameter Group"
-      Family: aurora5.7 #5.6 EOL Feb 2023
-      Parameters: 
-        time_zone: US/Eastern
-    Type: "AWS::RDS::DBClusterParameterGroup"
-  RDSDBInstance1: 
-    Properties: 
-      DBClusterIdentifier: 
-        Ref: RDSCluster
-      DBInstanceClass: db.t2.micro 
-      DBParameterGroupName: 
-        Ref: RDSDBParameterGroup
-      DBSubnetGroupName: 
-        Ref: PrivateSubnetB
-      Engine: aurora
-    Type: "AWS::RDS::DBInstance"
-  RDSDBParameterGroup:
-    Type: 'AWS::RDS::DBParameterGroup'
+  RDSCluster:
+    Type: 'AWS::RDS::DBCluster'
     Properties:
-      Description: CloudFormation Sample Aurora Parameter Group
-      Family: aurora5.7  #5.6 EOL Feb 2023
-      Parameters:
-        sql_mode: IGNORE_SPACE
-        max_allowed_packet: 1024
-        innodb_buffer_pool_size: '{DBInstanceClassMemory*3/4}'
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      Engine: aurora
+      EngineMode: serverless
+      DBSubnetGroupName: !Ref DBSubnetGroup
+
+  DBSubnetGroup: 
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties: 
+      DBSubnetGroupDescription: SubnetGroup for new aurora cluster
+      SubnetIds: 
+       - !Ref PrivateSubnetA
+       - !Ref PrivateSubnetB
+
+
