@@ -1,0 +1,566 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Create a VPC Network with subnets, ec2 hosts configured with Security groups
+  and other resources to interact.
+Parameters:
+  DBUsername:
+    NoEcho: 'true'
+    Description: Username for MySQL database access
+    Type: String
+    MinLength: '1'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  DBPassword:
+    NoEcho: 'true'
+    Description: Password MySQL database access
+    Type: String
+    MinLength: '8'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must contain only alphanumeric characters.
+Mappings:
+  RegionMap:
+    us-east-1:
+      ami: ami-0d5eff06f840b45e9
+    us-east-2:
+      ami: ami-002068ed284fb165b
+Resources:
+  ProductionVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Environment
+          Value: Production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Production-VPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: b7be334e-8b10-4782-a576-1d716d8e9f57
+  PublicSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: ProductionVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: us-east-1a
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Public-Subnet-A
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 86df4f5d-7a4a-4f5a-85aa-9efad8baff02
+  PublicSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: ProductionVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: us-east-1b
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Public-Subnet-B
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 40108372-c4b6-45f5-96c1-cc5fcedabb24
+  PrivateSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: ProductionVPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: us-east-1a
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Private-Subnet-A
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 9e12ed6d-2c67-4e04-84ee-d20718bf94e6
+  PrivateSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: ProductionVPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: us-east-1b
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Private-Subnet-B
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: be091194-6da2-4c51-be1d-905084b5603d
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: ef7af50c-b219-4214-b94e-8dc4a4c9f2bf
+  GatewayToInternet:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref ProductionVPC
+      InternetGatewayId: !Ref InternetGateway
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 0a8240b7-d1c6-4a85-aadc-9a7283de8608
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    DependsOn: GatewayToInternet
+    Properties:
+      VpcId: !Ref ProductionVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: acd5bffa-b49a-42bd-a639-5ab73b58f2f6
+  PublicCarrierRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: GatewayToInternet
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 5b401867-d9b2-47f4-8d8d-0493c54b7196
+  PublicSubnetARouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnetBRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+  PrivateRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref ProductionVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 8414a665-5379-4fd1-8406-3cce87cbd3a3
+  PrivateSubnetARouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetBRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+  JumpBoxInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0d5eff06f840b45e9
+      InstanceType: t2.micro
+      SubnetId: !Ref PublicSubnetA
+      SecurityGroupIds:
+        - !GetAtt JumpBoxSecurityGroup.GroupId
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Jump-Box-Instance
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 9ef95c89-5e47-4c12-8aa9-753166d4476c
+  JumpBoxSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: >-
+        Allow HTTP/HTTPS and SSH inbound and outbound traffic - Managed by
+        CloudFormation
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref ProductionVPC
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Jump-Box-SG
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: d04db1db-340a-445c-9694-4f33a43cbe4b
+  AppInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !FindInMap 
+        - RegionMap
+        - !Ref 'AWS::Region'
+        - ami
+      InstanceType: t2.micro
+      SubnetId: !Ref PrivateSubnetA
+      SecurityGroupIds:
+        - !GetAtt AppInstanceSecurityGroup.GroupId
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: App-Instance
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: fea81b12-1833-4408-9104-3acc8cd8dd87
+  AppInstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allow HTTP/HTTPS and SSH inbound traffic - managed by CloudFormation.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref JumpBoxSecurityGroup
+      VpcId: !Ref ProductionVPC
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: App-Instance-SG
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 3bff5905-b4fc-4cf1-83d5-37e0577e26ef
+  AppEIP:
+    Type: 'AWS::EC2::EIP'
+    DependsOn: ProductionVPC
+    Properties:
+      InstanceId: !Ref AppInstance
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 282c84fa-a05c-420a-bbae-504e45fa3f4c
+  WebAppInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0d5eff06f840b45e9
+      InstanceType: t2.micro
+      SubnetId: !Ref PublicSubnetB
+      SecurityGroupIds:
+        - !GetAtt WebAppSecurityGroup.GroupId
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Web-App-Instance
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 44a65210-70df-4614-96b3-f0d420b50660
+  WebAppSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allow outbound traffic via HTTPS - Managed by CloudFormation
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref ProductionVPC
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Web-App-SG
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 7552ceb9-0841-46ea-bc22-3ba9882dca4a
+  RDSCluster:
+    Type: 'AWS::RDS::DBCluster'
+    Properties:
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      Engine: aurora
+      EngineMode: serverless
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: RDS-Cluster
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 8bd4cf9f-a5de-4a67-9d26-21419bcb54d1
+  DBSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: SubnetGroup for new aurora cluster
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: a71e4e55-25f0-476e-b9a5-15f98b034889
+Metadata:
+  'AWS::CloudFormation::Designer':
+    ef7af50c-b219-4214-b94e-8dc4a4c9f2bf:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 360
+        'y': -40
+      z: 1
+      embeds: []
+    b7be334e-8b10-4782-a576-1d716d8e9f57:
+      size:
+        width: 730
+        height: 470
+      position:
+        x: -10
+        'y': 90
+      z: 1
+      embeds:
+        - 86df4f5d-7a4a-4f5a-85aa-9efad8baff02
+        - 9e12ed6d-2c67-4e04-84ee-d20718bf94e6
+        - be091194-6da2-4c51-be1d-905084b5603d
+        - 40108372-c4b6-45f5-96c1-cc5fcedabb24
+    7552ceb9-0841-46ea-bc22-3ba9882dca4a:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 170
+        'y': 360
+      z: 3
+      parent: 40108372-c4b6-45f5-96c1-cc5fcedabb24
+      embeds: []
+      iscontainedinside:
+        - b7be334e-8b10-4782-a576-1d716d8e9f57
+    d04db1db-340a-445c-9694-4f33a43cbe4b:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 140
+        'y': 160
+      z: 3
+      parent: 86df4f5d-7a4a-4f5a-85aa-9efad8baff02
+      embeds: []
+      iscontainedinside:
+        - b7be334e-8b10-4782-a576-1d716d8e9f57
+    3bff5905-b4fc-4cf1-83d5-37e0577e26ef:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 590
+        'y': 180
+      z: 3
+      parent: 9e12ed6d-2c67-4e04-84ee-d20718bf94e6
+      embeds: []
+      iscontainedinside:
+        - b7be334e-8b10-4782-a576-1d716d8e9f57
+    8414a665-5379-4fd1-8406-3cce87cbd3a3:
+      size:
+        width: 150
+        height: 150
+      position:
+        x: 850
+        'y': 170
+      z: 1
+      embeds: []
+    0a8240b7-d1c6-4a85-aadc-9a7283de8608:
+      source:
+        id: b7be334e-8b10-4782-a576-1d716d8e9f57
+      target:
+        id: ef7af50c-b219-4214-b94e-8dc4a4c9f2bf
+    acd5bffa-b49a-42bd-a639-5ab73b58f2f6:
+      size:
+        width: 240
+        height: 240
+      position:
+        x: -280
+        'y': 160
+      z: 1
+      embeds:
+        - 5b401867-d9b2-47f4-8d8d-0493c54b7196
+      dependson:
+        - 0a8240b7-d1c6-4a85-aadc-9a7283de8608
+    5b401867-d9b2-47f4-8d8d-0493c54b7196:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -250
+        'y': 220
+      z: 2
+      parent: acd5bffa-b49a-42bd-a639-5ab73b58f2f6
+      embeds: []
+      isassociatedwith:
+        - ef7af50c-b219-4214-b94e-8dc4a4c9f2bf
+      iscontainedinside:
+        - acd5bffa-b49a-42bd-a639-5ab73b58f2f6
+      dependson:
+        - 0a8240b7-d1c6-4a85-aadc-9a7283de8608
+    be091194-6da2-4c51-be1d-905084b5603d:
+      size:
+        width: 240
+        height: 190
+      position:
+        x: 460
+        'y': 340
+      z: 2
+      parent: b7be334e-8b10-4782-a576-1d716d8e9f57
+      embeds:
+        - a71e4e55-25f0-476e-b9a5-15f98b034889
+        - 8bd4cf9f-a5de-4a67-9d26-21419bcb54d1
+    9e12ed6d-2c67-4e04-84ee-d20718bf94e6:
+      size:
+        width: 220
+        height: 180
+      position:
+        x: 450
+        'y': 120
+      z: 2
+      parent: b7be334e-8b10-4782-a576-1d716d8e9f57
+      embeds:
+        - fea81b12-1833-4408-9104-3acc8cd8dd87
+        - 3bff5905-b4fc-4cf1-83d5-37e0577e26ef
+    a71e4e55-25f0-476e-b9a5-15f98b034889:
+      size:
+        width: 80
+        height: 80
+      position:
+        x: 590
+        'y': 400
+      z: 3
+      parent: be091194-6da2-4c51-be1d-905084b5603d
+      embeds: []
+    8bd4cf9f-a5de-4a67-9d26-21419bcb54d1:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 490
+        'y': 420
+      z: 3
+      parent: be091194-6da2-4c51-be1d-905084b5603d
+      embeds: []
+    fea81b12-1833-4408-9104-3acc8cd8dd87:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 480
+        'y': 180
+      z: 3
+      parent: 9e12ed6d-2c67-4e04-84ee-d20718bf94e6
+      embeds: []
+      isassociatedwith:
+        - 3bff5905-b4fc-4cf1-83d5-37e0577e26ef
+      iscontainedinside:
+        - 9e12ed6d-2c67-4e04-84ee-d20718bf94e6
+    282c84fa-a05c-420a-bbae-504e45fa3f4c:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 480
+        'y': 30
+      z: 1
+      embeds: []
+      isassociatedwith:
+        - fea81b12-1833-4408-9104-3acc8cd8dd87
+      dependson:
+        - b7be334e-8b10-4782-a576-1d716d8e9f57
+    40108372-c4b6-45f5-96c1-cc5fcedabb24:
+      size:
+        width: 210
+        height: 180
+      position:
+        x: 50
+        'y': 340
+      z: 2
+      parent: b7be334e-8b10-4782-a576-1d716d8e9f57
+      embeds:
+        - 44a65210-70df-4614-96b3-f0d420b50660
+        - 7552ceb9-0841-46ea-bc22-3ba9882dca4a
+    44a65210-70df-4614-96b3-f0d420b50660:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 70
+        'y': 360
+      z: 3
+      parent: 40108372-c4b6-45f5-96c1-cc5fcedabb24
+      embeds: []
+      isassociatedwith:
+        - 7552ceb9-0841-46ea-bc22-3ba9882dca4a
+      iscontainedinside:
+        - 40108372-c4b6-45f5-96c1-cc5fcedabb24
+    86df4f5d-7a4a-4f5a-85aa-9efad8baff02:
+      size:
+        width: 230
+        height: 160
+      position:
+        x: 40
+        'y': 130
+      z: 2
+      parent: b7be334e-8b10-4782-a576-1d716d8e9f57
+      embeds:
+        - 9ef95c89-5e47-4c12-8aa9-753166d4476c
+        - d04db1db-340a-445c-9694-4f33a43cbe4b
+    9ef95c89-5e47-4c12-8aa9-753166d4476c:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 60
+        'y': 160
+      z: 3
+      parent: 86df4f5d-7a4a-4f5a-85aa-9efad8baff02
+      embeds: []
+      isassociatedwith:
+        - d04db1db-340a-445c-9694-4f33a43cbe4b
+      iscontainedinside:
+        - 86df4f5d-7a4a-4f5a-85aa-9efad8baff02

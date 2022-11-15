@@ -1,0 +1,282 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create a VPC Network with subnets, ec2 hosts configured with Security groups and other resources to interact.
+Parameters:
+  DBUsername:
+    NoEcho: 'true'
+    Description: Username for MySQL database access
+    Type: String
+    MinLength: '1'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  DBPassword:
+    NoEcho: 'true'
+    Description: Password MySQL database access
+    Type: String
+    MinLength: '8'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must contain only alphanumeric characters.
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      ami: ami-0d5eff06f840b45e9
+    us-east-2:
+      ami: ami-002068ed284fb165b
+
+
+Resources:
+  ProductionVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties: 
+      CidrBlock: 10.0.0.0/16
+      Tags:
+       - Key: Environment
+         Value: Production
+       - Key: Owner
+         Value: Samantha
+       - Key: Type
+         Value: Production-VPC
+
+#Public Subnet A
+  PublicSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties: 
+      VpcId: 
+        Ref: ProductionVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Environment
+        Value: production
+      - Key: Owner
+        Value: Samantha
+      - Key: Type
+        Value: Public-Subnet-A
+
+#Public Subnet B
+  PublicSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties: 
+      VpcId: 
+        Ref: ProductionVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: "us-east-1b"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Environment
+        Value: production
+      - Key: Owner
+        Value: Samantha
+      - Key: Type
+        Value: Public-Subnet-B
+    
+    
+#Private Subnet A
+  PrivateSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties: 
+      VpcId: 
+        Ref: ProductionVPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: "us-east-1a"
+      Tags:
+      - Key: Environment
+        Value: production
+      - Key: Owner
+        Value: Samantha
+      - Key: Type
+        Value: Private-Subnet-A
+
+#Private Subnet B
+  PrivateSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties: 
+      VpcId: 
+        Ref: ProductionVPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Environment
+        Value: production
+      - Key: Owner
+        Value: Samantha
+      - Key: Type
+        Value: Private-Subnet-B
+
+#Network Routing
+  #Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  #Gateway to Internet
+  GatewayToInternet:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: 
+        !Ref ProductionVPC
+      InternetGatewayId: 
+        !Ref InternetGateway
+    
+######## Public Routing ########
+#Public Route Table
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    DependsOn: GatewayToInternet
+    Properties: 
+      VpcId: !Ref ProductionVPC
+
+#Public Carrier Route
+  PublicCarrierRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: GatewayToInternet
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+#Public Subnet Route Table Association
+  PublicSubnetARouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnetA 
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetBRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnetB 
+      RouteTableId: !Ref PublicRouteTable
+
+######## Private Routing ########
+#Private Route Table:
+  PrivateRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties: 
+      VpcId: !Ref ProductionVPC
+
+#Private Subnet Route Table Association
+  PrivateSubnetARouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetBRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+####### Resources Creation ########
+#JumpBox Server Creation
+  JumpBoxInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0d5eff06f840b45e9 # ImageID valid only in us-east-1 region
+      InstanceType: t2.micro
+      SubnetId: !Ref PublicSubnetA
+      SecurityGroupIds:
+        - !GetAtt JumpBoxSecurityGroup.GroupId
+
+  JumpBoxSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: "Allow HTTP/HTTPS and SSH inbound and outbound traffic - Managed by CloudFormation"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref ProductionVPC
+
+#AppInstance Server Creation
+  AppInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !FindInMap
+        - RegionMap
+        - !Ref 'AWS::Region'
+        - ami
+      InstanceType: t2.micro
+      SubnetId: !Ref PrivateSubnetA
+      SecurityGroupIds:
+        - !GetAtt AppInstanceSecurityGroup.GroupId
+
+# AppInstance Security Group References
+  AppInstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allow HTTP/HTTPS and SSH inbound traffic - managed by CloudFormation.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref JumpBoxSecurityGroup
+      VpcId: !Ref ProductionVPC
+
+# EIP to be associated with AppInstance
+  AppEIP:
+    Type: 'AWS::EC2::EIP'
+    DependsOn: ProductionVPC
+    Properties:
+      InstanceId: !Ref AppInstance
+
+#WebApp Server Creation
+  WebAppInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0d5eff06f840b45e9 # ImageID valid only in us-east-1 region
+      InstanceType: t2.micro
+      SubnetId: !Ref PublicSubnetB
+      SecurityGroupIds:
+        - !GetAtt WebAppSecurityGroup.GroupId
+
+  WebAppSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: "Allow outbound traffic via HTTPS - Managed by CloudFormation"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref ProductionVPC
+
+######## Aurora RDS Configuration ###########
+  RDSCluster:
+    Type: 'AWS::RDS::DBCluster'
+    Properties:
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      Engine: aurora
+      EngineMode: serverless
+      DBSubnetGroupName: !Ref DBSubnetGroup
+
+  DBSubnetGroup: 
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties: 
+      DBSubnetGroupDescription: SubnetGroup for new aurora cluster
+      SubnetIds: 
+       - !Ref PrivateSubnetA
+       - !Ref PrivateSubnetB
+
+
