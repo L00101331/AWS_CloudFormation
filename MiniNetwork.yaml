@@ -175,11 +175,21 @@ Resources:
   JumpBoxInstance:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0d5eff06f840b45e9 # ImageID valid only in us-east-1 region
+      ImageId: !FindInMap 
+        - RegionMap 
+        - !Ref 'AWS::Region'
+        - ami
       InstanceType: t2.micro
       SubnetId: !Ref PublicSubnetA
       SecurityGroupIds:
         - !GetAtt JumpBoxSecurityGroup.GroupId
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Jump-Box-Instance
 
   JumpBoxSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -199,19 +209,33 @@ Resources:
           ToPort: 22
           CidrIp: 0.0.0.0/0
       VpcId: !Ref ProductionVPC
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Jump-Box-SG
 
 #AppInstance Server Creation
   AppInstance:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: !FindInMap
-        - RegionMap
+      ImageId: !FindInMap 
+        - RegionMap 
         - !Ref 'AWS::Region'
         - ami
       InstanceType: t2.micro
       SubnetId: !Ref PrivateSubnetA
       SecurityGroupIds:
         - !GetAtt AppInstanceSecurityGroup.GroupId
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: App-Instance
 
 # AppInstance Security Group References
   AppInstanceSecurityGroup:
@@ -224,6 +248,13 @@ Resources:
           ToPort: 22
           SourceSecurityGroupId: !Ref JumpBoxSecurityGroup
       VpcId: !Ref ProductionVPC
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: App-Instance-SG
 
 # EIP to be associated with AppInstance
   AppEIP:
@@ -236,11 +267,21 @@ Resources:
   WebAppInstance:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0d5eff06f840b45e9 # ImageID valid only in us-east-1 region
+      ImageId: !FindInMap 
+        - RegionMap 
+        - !Ref 'AWS::Region'
+        - ami
       InstanceType: t2.micro
       SubnetId: !Ref PublicSubnetB
       SecurityGroupIds:
         - !GetAtt WebAppSecurityGroup.GroupId
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Web-App-Instance
 
   WebAppSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -260,6 +301,13 @@ Resources:
           ToPort: 22
           CidrIp: 0.0.0.0/0
       VpcId: !Ref ProductionVPC
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: Web-App-SG
 
 ######## Aurora RDS Configuration ###########
   RDSCluster:
@@ -270,6 +318,13 @@ Resources:
       Engine: aurora
       EngineMode: serverless
       DBSubnetGroupName: !Ref DBSubnetGroup
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Owner
+          Value: Samantha
+        - Key: Type
+          Value: RDS-Cluster
 
   DBSubnetGroup: 
     Type: 'AWS::RDS::DBSubnetGroup'
