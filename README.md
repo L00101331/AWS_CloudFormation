@@ -15,4 +15,4 @@ or
 
 - When in Create Stack > select `create template in Designer`
 - In the bottom corner of the screen select `template`.
-- Then select `YAML` in the option above and the contents from MiniNetwork.yaml can be shared over.
+- Then select `YAML` in the option above and copy the contents from MiniNetwork.yaml can be shared over.
